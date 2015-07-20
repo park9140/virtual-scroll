@@ -1,0 +1,20 @@
+{
+  "name": "virtual-scroll",
+  "version": "0.1.0",
+  "description": "Generic virtual scroll implementation",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "jspm": "^0.15.7",
+    "ntypescript": "^1.201507152343.1",
+    "serve": "^1.4.0"
+  },
+  "jspm": {
+    "directories": {},
+    "devDependencies": {}
+  }
+}
