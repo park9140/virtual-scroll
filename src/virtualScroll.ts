@@ -14,11 +14,13 @@ function removeItemFromArray(array, item): boolean {
     }
     return false;
 }
+
 enum Direction {
     x = 1,
     y = 2,
     both = 3
 }
+
 export class ScrollBox {
     private disposibles = [];
     private syncScroll: number;
@@ -28,11 +30,13 @@ export class ScrollBox {
         var updatePosition = () => {
             callback(this.element.scrollLeft, this.element.scrollTop);
         };
+
         this.element.addEventListener('scroll', updatePosition)
         var disposible = () => {
             removeItemFromArray(this.disposibles, disposible);
             this.element.removeEventListener('scroll', updatePosition);
         };
+
         this.disposibles.push()
         return disposible;
     }
@@ -78,18 +82,24 @@ export class ScrollBox {
 
 export class VirtualScroll {
     private verticalItems: Array<any>;
+    private verticalItemPositions: Array<number>;
     private horizontalItems: Array<any>;
+    private horizontalItemsPositions: Array<number>
     private disposibles = [];
     private height: number;
     private width: number;
+    private scrollTop: number;
+    private scrollLeft: number;
+    private currentVerticalIndex: number = 0;
+    private currentHorizontalIndex: number = 0;
     private scrollArea: HTMLDivElement;
     private verticalStructure: IStructure<any>;
     private horizontalStructure: IStructure<any>;
 
-
     constructor(
         private scrollBox: ScrollBox) {
         this.disposibles.push(scrollBox.onSizeChange(this.setVisibleSpace.bind(this)));
+        this.disposibles.push(scrollBox.onScroll(this.scroll.bind(this)));
     }
 
     setVerticalStructure(structure: IStructure<any>) {
@@ -113,13 +123,58 @@ export class VirtualScroll {
         if (this.horizontalStructure) {
             this.getHorizontalItems();
         }
+        this.initializeItemPositions();
+        this.renderVisibleItems();
+    }
 
+    scroll(scrollLeft: number, scrollTop: number): void {
+        this.scrollTop = scrollTop;
+        this.scrollLeft = scrollLeft;
+        this.renderVisibleItems();
+    }
+
+    private renderVisibleItems() {
+        
+    }
+
+    private updateVerticalIndex(): number {
+        var currentVerticalIndex = this.currentVerticalIndex;
+        if (this.scrollTop > this.verticalItemPositions[currentVerticalIndex]) {
+            while(this.scrollTop >= this.verticalItemPositions[++currentVerticalIndex]) {
+                this.currentVerticalIndex = currentVerticalIndex - 1;
+            }
+        } else if (this.scrollTop < this.verticalItemPositions[currentVerticalIndex]) {
+            while(this.scrollTop >= this.verticalItemPositions[--currentVerticalIndex]) {
+                this.currentVerticalIndex = currentVerticalIndex + 1;
+            }
+        }
+        return this.currentVerticalIndex;
+    }
+
+    private updateHorizontalIndex(): number {
+        var currentHorizontalIndex = this.currentHorizontalIndex;
+        if (this.scrollLeft > this.horizontalItemsPositions[currentHorizontalIndex]) {
+            while(this.scrollLeft >= this.horizontalItemsPositions[++currentHorizontalIndex]) {
+                this.currentHorizontalIndex = currentHorizontalIndex - 1;
+            }
+        } else if (this.scrollLeft < this.horizontalItemsPositions[currentHorizontalIndex]) {
+            while(this.scrollLeft >= this.horizontalItemsPositions[--currentHorizontalIndex]) {
+                this.currentHorizontalIndex = currentHorizontalIndex + 1;
+            }
+        }
+        return this.currentHorizontalIndex;
     }
 
     private getVerticalItems(previous?) {
         this.verticalItems =  previous ?
             this.verticalStructure.getPreviousItems() :
             this.verticalStructure.getNextItems();
+        var nextItemPosition = 0;
+        this.verticalItemPositions = this.verticalItems.map((item, index) => {
+            var itemPosition = nextItemPosition;
+            nextItemPosition += this.verticalStructure.height;
+            return itemPosition;
+        });
 
         this.updateScrollArea();
     }
@@ -128,7 +183,12 @@ export class VirtualScroll {
         this.horizontalItems = previous ?
             this.horizontalStructure.getPreviousItems() :
             this.horizontalStructure.getNextItems();
-
+        var nextItemPosition = 0;
+        this.horizontalItemsPositions = this.horizontalItems.map((item, index) => {
+            var itemPosition = nextItemPosition;
+            nextItemPosition += this.horizontalStructure.width;
+            return itemPosition;
+        });
         this.updateScrollArea();
     }
 
@@ -151,7 +211,6 @@ export class VirtualScroll {
         }
     }
 
-
     dispose() {
         this.disposibles.forEach((disposible: Function) => {
             disposible();
@@ -164,7 +223,7 @@ export interface IStructure<T> {
     width: number;
     structureClass: string;
 
-    getNextItems?: <U>(parent?: U) => Array<T>;
+    getNextItems?: <U>(parent?: U) => Array<T>;s
     getPreviousItems?: <U>(parent?: U) => Array<T>;
 
     hasNextItems?: () => boolean;
