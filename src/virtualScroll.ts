@@ -1,3 +1,6 @@
+interface IHash<T> {
+    [key: string]: T;
+}
 interface IScrollHandler {
     (scrollLeft: number, scrollTop: number): void;
 }
@@ -37,7 +40,7 @@ export class ScrollBox {
             this.element.removeEventListener('scroll', updatePosition);
         };
 
-        this.disposibles.push()
+        this.disposibles.push();
         return disposible;
     }
     syncWith(scrollBox: ScrollBox, direction: Direction) {
@@ -81,10 +84,12 @@ export class ScrollBox {
 }
 
 export class VirtualScroll {
+    private currentVerticalLastIndex: number;
+    private currentHorizontalLastIndex: number
     private verticalItems: Array<any>;
     private verticalItemPositions: Array<number>;
     private horizontalItems: Array<any>;
-    private horizontalItemsPositions: Array<number>
+    private horizontalItemPositions: Array<number>;
     private disposibles = [];
     private height: number;
     private width: number;
@@ -123,7 +128,6 @@ export class VirtualScroll {
         if (this.horizontalStructure) {
             this.getHorizontalItems();
         }
-        this.initializeItemPositions();
         this.renderVisibleItems();
     }
 
@@ -134,7 +138,9 @@ export class VirtualScroll {
     }
 
     private renderVisibleItems() {
-        
+        var unusedCell: IHash<Array<IStructureInstance>> = this.getCurrentUnusedCells();
+        var cellsToPosition: Array<IStructureInstance> = this.calculateNeededCells(unusedCells);
+        this.positionCells(cellsToPosition);
     }
 
     private updateVerticalIndex(): number {
@@ -151,18 +157,36 @@ export class VirtualScroll {
         return this.currentVerticalIndex;
     }
 
+    private updateVerticalLastIndex(): number {
+        var currentVerticalIndex = this.currentVerticalIndex;
+        var right = this.scrollLeft + this.width;
+        while(right < this.verticalItemPositions[++currentVerticalIndex]) {
+            this.currentVerticalLastIndex = currentVerticalIndex + 1;
+        }
+        return this.currentVerticalLastIndex;
+    }
+
     private updateHorizontalIndex(): number {
         var currentHorizontalIndex = this.currentHorizontalIndex;
-        if (this.scrollLeft > this.horizontalItemsPositions[currentHorizontalIndex]) {
-            while(this.scrollLeft >= this.horizontalItemsPositions[++currentHorizontalIndex]) {
+        if (this.scrollLeft > this.horizontalItemPositions[currentHorizontalIndex]) {
+            while(this.scrollLeft >= this.horizontalItemPositions[++currentHorizontalIndex]) {
                 this.currentHorizontalIndex = currentHorizontalIndex - 1;
             }
-        } else if (this.scrollLeft < this.horizontalItemsPositions[currentHorizontalIndex]) {
-            while(this.scrollLeft >= this.horizontalItemsPositions[--currentHorizontalIndex]) {
+        } else if (this.scrollLeft < this.horizontalItemPositions[currentHorizontalIndex]) {
+            while(this.scrollLeft >= this.horizontalItemPositions[--currentHorizontalIndex]) {
                 this.currentHorizontalIndex = currentHorizontalIndex + 1;
             }
         }
         return this.currentHorizontalIndex;
+    }
+
+    private updateHorizontalLastIndex(): number {
+        var currentHorizontalIndex = this.currentHorizontalIndex;
+        var right = this.scrollLeft + this.width;
+        while(right < this.horizontalItemPositions[++currentHorizontalIndex]) {
+            this.currentHorizontalLastIndex = currentHorizontalIndex + 1;
+        }
+        return this.currentHorizontalLastIndex;
     }
 
     private getVerticalItems(previous?) {
@@ -184,7 +208,7 @@ export class VirtualScroll {
             this.horizontalStructure.getPreviousItems() :
             this.horizontalStructure.getNextItems();
         var nextItemPosition = 0;
-        this.horizontalItemsPositions = this.horizontalItems.map((item, index) => {
+        this.horizontalItemPositions = this.horizontalItems.map((item, index) => {
             var itemPosition = nextItemPosition;
             nextItemPosition += this.horizontalStructure.width;
             return itemPosition;
@@ -221,7 +245,7 @@ export class VirtualScroll {
 export interface IStructure<T> {
     height: number;
     width: number;
-    structureClass: string;
+    structureType: string;
 
     getNextItems?: <U>(parent?: U) => Array<T>;s
     getPreviousItems?: <U>(parent?: U) => Array<T>;
@@ -235,4 +259,5 @@ export interface IStructure<T> {
 
 interface IStructureInstance<T> extends HTMLElement {
     update(data: T): void;
+    structureType: string;
 }
